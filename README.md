@@ -4,6 +4,7 @@
 
 This system scrapes job portals like LinkedIn, Naukri, Glassdoor, and Internshala, discovers HR contacts, enriches data, monitors performance, and optimizes costs — all deployable on Docker locally and AWS in production.
 
+`🔴🔴 For educational purpose only 🔴🔴`      
 ---
 
 ## ⚙️ Development Objectives
@@ -22,7 +23,7 @@ This system scrapes job portals like LinkedIn, Naukri, Glassdoor, and Internshal
 1. Clone the repository.
 2. Spin up services using `docker-compose`.
 3. Run scraper containers to fetch job data.
-4. Store data into local PostgreSQL.
+4. Store data into docker PostgreSQL or mongoDB.
 5. Visualize metrics in Grafana.
 6. Output daily JSON and email templates.
 
