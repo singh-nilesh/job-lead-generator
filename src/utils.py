@@ -1,6 +1,8 @@
 import json
 from datetime import datetime, timedelta
 import re
+import csv
+from src.scrapers.models import JobDetails
 
 
 def load_json(path='config.json'):
@@ -44,3 +46,38 @@ def extract_posting_date(posted_text):
     
     # If no pattern matches, return the original text
     return posted_text
+
+
+def write_url_to_file(self, url_list: list[str]):
+    """
+    This file saves scraped links to .txt file
+    """
+    with open("links.txt", 'w') as f:
+        for url in url_list:
+            f.write(f"{url}\n")
+                
+def save_to_csv(results:JobDetails):
+        """
+        This fuction saves progress incase of runtime error / keyboard inturrupt
+        """
+        #logging.info("saving records to CSV file")
+        with open("jobs.csv", 'w', newline='', encoding='utf-8') as f:
+            
+            # Define fieldnames based on JobDetails attributes
+            fieldnames = ['title', 'company', 'location', 'start_date', 'duration', 
+                         'stipend', 'apply_by', 'responsibilities', 'skills_required', 
+                         'other_requirements', 'perks', 'openings', 'company_description', 
+                         'posted_date','company_url', 'url']
+            
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            
+            for job in results:
+                # Convert lists to strings for CSV compatibility
+                job_dict = job.__dict__.copy()
+                for key, value in job_dict.items():
+                    if isinstance(value, list):
+                        job_dict[key] = ', '.join(value)
+                
+                writer.writerow(job_dict)
+        #logging.info(f"Successfully saved {len(results)} jobs to jobs.csv")

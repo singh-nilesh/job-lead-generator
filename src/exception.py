@@ -1,6 +1,6 @@
 # contains Python runtime events (Exception, etc)
 import sys
-from src.logger import logging  
+
 
 def error_message_detail(error, error_detail=None):
     try:
@@ -36,5 +36,5 @@ if __name__ == "__main__":
     try:
         a = 1/0
     except Exception as e:
-        logging.info("Divide by Zero")
-        raise CustomException(e)
+        #logging.info("Divide by Zero")
+        raise CustomException("DIvide by ZERPo")

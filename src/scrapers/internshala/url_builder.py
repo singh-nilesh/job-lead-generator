@@ -1,7 +1,18 @@
 
-from src.config import ScraperConfig 
+from src.config import ScraperConfig
 
-def build_internship_url(cfg:ScraperConfig):
+def url_bilder_init(cfg:ScraperConfig):
+    """This function compiles source urls for internships and jobs"""
+    url_list = []
+    if cfg.internship :
+        url_list.append(_build_internship_url(cfg))
+    
+    if cfg.job:
+        url_list.append(_build_job_url(cfg))
+    
+    return url_list
+
+def _build_internship_url(cfg:ScraperConfig):
     """ This function Constructs init URL for Internship"""    
     if not cfg.remote:
         return
@@ -46,9 +57,7 @@ def build_internship_url(cfg:ScraperConfig):
     return(url.replace(' ', '-').lower())
 
 
-
-
-def build_job_url(cfg:ScraperConfig):
+def _build_job_url(cfg:ScraperConfig):
     """ This function Constructs init URL for Jobs"""
     if not cfg.job:
         return

@@ -2,15 +2,15 @@ import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
 import time
-import random
 from src.config import ScraperConfig
-import csv
 from src.exception import CustomException
 from src.logger import logging
-from src.scrapers.internshala import url_builder
+from src.scrapers.internshala.url_builder import url_bilder_init
 from src.scrapers.models import JobDetails
+from src.utils import save_to_csv
 from src.utils import extract_posting_date
 
+MAIN = "src.scraper.internshala.main_scraper.py"
 
 class InternshalaScraper:
     def __init__ (self, config:ScraperConfig, max_page = 1):
@@ -22,22 +22,19 @@ class InternshalaScraper:
         self.job_links: list[str] = []
         self.results: list[JobDetails] = []
     
-    def _write_url_to_file(self, url_list: list[str]):
-        with open("links.txt", 'w') as f:
-            for url in url_list:
-                f.write(f"{url}\n")
                 
                 
     def start_scraping(self) -> bool:
         """Main controller"""
         try:
             # compiling URL as per Config
-            source_urls = self._url_builder()
+            source_urls = url_bilder_init
+            logging.info("")
             
             # get job details url
             for url in source_urls:
                 self._get_jobDetails_url(url)
-            self._write_url_to_file(self.job_links)
+            save_to_csv(self.job_links)
             
             # scrape Job Details
             for url in self.job_links:
@@ -55,18 +52,6 @@ class InternshalaScraper:
             self._save_progress()
             return False
         
-        
-    def _url_builder(self) -> list[str]:
-        """This function compiles source urls for internships and jobs"""
-        url_list = []
-        if self.cfg.internship :
-            url_list.append(url_builder.build_internship_url(self.cfg))
-        
-        if self.cfg.job:
-            url_list.append(url_builder.build_job_url(self.cfg))
-        
-        logging.info(f"Compiled url \n {url_list}")
-        return url_list
         
         
     def _scrape_job_details(self, url:str):
@@ -160,6 +145,11 @@ class InternshalaScraper:
             if posted_date_element:
                 posted_text = posted_date_element.text.strip()
                 job.posted_date = extract_posting_date(posted_text)
+                
+            # Extract Company url if possible.
+            company_url = soup.select_one('.website_link a')
+            if company_url and company_url.has_attr('href'):
+                job.company_url = company_url['href']
             
             logging.info(f"finnished compiling details for \n{url}")
             self.results.append(job)
@@ -208,31 +198,6 @@ class InternshalaScraper:
             raise CustomException(f"Error occured during scraping Job list for {source_url}")
                 
     
-    def _save_progress(self):
-        """
-        This fuction saves progress incase of runtime error / keyboard inturrupt
-        """
-        logging.info("saving records to CSV file")
-        with open("jobs.csv", 'w', newline='', encoding='utf-8') as f:
-            
-            # Define fieldnames based on JobDetails attributes
-            fieldnames = ['title', 'company', 'location', 'start_date', 'duration', 
-                         'stipend', 'apply_by', 'responsibilities', 'skills_required', 
-                         'other_requirements', 'perks', 'openings', 'company_description', 
-                         'posted_date', 'url']
-            
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
-            writer.writeheader()
-            
-            for job in self.results:
-                # Convert lists to strings for CSV compatibility
-                job_dict = job.__dict__.copy()
-                for key, value in job_dict.items():
-                    if isinstance(value, list):
-                        job_dict[key] = ', '.join(value)
-                
-                writer.writerow(job_dict)
-        logging.info(f"Successfully saved {len(self.results)} jobs to jobs.csv")
 
 
 

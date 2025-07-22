@@ -17,4 +17,5 @@ class JobDetails:
     openings: str = None
     company_description: str = None
     posted_date: str = None
+    company_url: str = None
     url: str = None

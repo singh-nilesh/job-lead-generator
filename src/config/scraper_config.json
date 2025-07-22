@@ -5,13 +5,13 @@
   "part_time": false,
   
   "location": ["mumbai"],
-  "role": ["Machine learning", "data science"],
+  "role": ["Machine learning"],
   "experience_years": 0,
 
   "headers": {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
   },
-  "min_stipend": 6000,
+  "min_stipend": 5000,
   "salary(lpa)": 5,
   "timeout": 5,
   
