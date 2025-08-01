@@ -48,7 +48,7 @@ def extract_posting_date(posted_text):
     return posted_text
 
 
-def write_url_to_file(self, url_list: list[str]):
+def write_url_to_file(url_list: list[str]):
     """
     This file saves scraped links to .txt file
     """
@@ -56,7 +56,7 @@ def write_url_to_file(self, url_list: list[str]):
         for url in url_list:
             f.write(f"{url}\n")
                 
-def save_to_csv(results:JobDetails):
+def save_to_csv(results:list[JobDetails]):
         """
         This fuction saves progress incase of runtime error / keyboard inturrupt
         """

@@ -1,16 +1,16 @@
+import sys
 import requests
 from bs4 import BeautifulSoup
-from datetime import datetime
 import time
 from src.config import ScraperConfig
 from src.exception import CustomException
-from src.logger import logging
+from src.logger import scraper_logger as logger
 from src.scrapers.internshala.url_builder import url_bilder_init
 from src.scrapers.models import JobDetails
 from src.utils import save_to_csv
+from src.utils import write_url_to_file
 from src.utils import extract_posting_date
 
-MAIN = "src.scraper.internshala.main_scraper.py"
 
 class InternshalaScraper:
     def __init__ (self, config:ScraperConfig, max_page = 1):
@@ -18,40 +18,34 @@ class InternshalaScraper:
         self.max_pages = max_page
         self.timeout = config.timeout
         self.base_url: str = config.internshala_base_urls
-        self.header: str = config.headers
+        self.header: dict = config.headers
         self.job_links: list[str] = []
         self.results: list[JobDetails] = []
     
                 
                 
-    def start_scraping(self) -> bool:
+    def start_scraping(self) -> list[JobDetails]:
         """Main controller"""
         try:
             # compiling URL as per Config
-            source_urls = url_bilder_init
-            logging.info("")
+            source_urls = url_bilder_init(self.cfg)
+            logger.info("Finished compiling source URL as per Config")
             
             # get job details url
             for url in source_urls:
                 self._get_jobDetails_url(url)
-            save_to_csv(self.job_links)
+            
+            logger.debug("writing links to file")
+            write_url_to_file(self.job_links)
             
             # scrape Job Details
             for url in self.job_links:
                 self._scrape_job_details(url)
-            
-            if len(self.results) > 0:
-                logging.info(f"Successfully scraped {len(self.results)} jobs on {datetime.now().date()}")
-                return True
-            else:
-                logging.info(f"Unsuccessfull attempt: no jobs scraped on {datetime.now().date()}")
-                return False
     
         except KeyboardInterrupt:
-            logging.info("User terminated process with KeyboardInterrupt")
-            self._save_progress()
-            return False
-        
+            logger.critical("User terminated process with KeyboardInterrupt")
+        finally:
+            return self.results
         
         
     def _scrape_job_details(self, url:str):
@@ -59,12 +53,17 @@ class InternshalaScraper:
         try:
             # Add a random delay to avoid rate limiting
             time.sleep(5)
-            logging.info(f"init job details Scraping {url}")
+            logger.info(f"init job details Scraping for {url}")
             
             # Send a GET request to the URL
             response = requests.get(url, headers=self.header)
+            
+            # Continue to next link incase of 404
+            if response.status_code == 404:
+                logger.warning(f"404 not found error for {url} - skipping this job")
+                return
             response.raise_for_status()
-            logging.info("Got the response from url")
+            logger.info("Got the response from url")
         
             # Parse the BeautifulSoup constructor
             soup = BeautifulSoup(response.content, 'html.parser')
@@ -118,7 +117,7 @@ class InternshalaScraper:
             # skills required
             skills_elements = soup.select('.skills_heading + .round_tabs_container .round_tabs')
             if skills_elements:
-                job.skills_required = [skill.text.strip() for skill in skills_elements]
+                job.skills_required = ', '.join([skill.text.strip() for skill in skills_elements])
 
             # other requirements
             other_req_element = soup.select_one('.text-container.additional_detail')
@@ -128,7 +127,7 @@ class InternshalaScraper:
             # perks
             perks_elements = soup.select('.perks_heading + .round_tabs_container .round_tabs')
             if perks_elements:
-                job.perks = [perk.text.strip() for perk in perks_elements]
+                job.perks = ', '.join([perk.text.strip() for perk in perks_elements])
 
             # number of openings
             openings_element = soup.select_one('.section_heading:-soup-contains("Number of openings") + .text-container')
@@ -149,13 +148,17 @@ class InternshalaScraper:
             # Extract Company url if possible.
             company_url = soup.select_one('.website_link a')
             if company_url and company_url.has_attr('href'):
-                job.company_url = company_url['href']
+                job.company_url = str(company_url['href'])
             
-            logging.info(f"finnished compiling details for \n{url}")
+            logger.info(f"finnished compiling details for \n{url}")
             self.results.append(job)
-
+            
+        except requests.RequestException as e:
+            logger.error(f"Network error when accessing {url}: {str(e)}")
+            raise CustomException(f"Network error during scraping: {str(e)}", sys)
         except Exception as e:
-            raise CustomException(f"Error occured during scraping Job details for {url}")
+            logger.error(f"Excepton occured while fetching 'Job Details' from {url}\n: {str(e)}",)
+            raise CustomException(f"Error occured during scraping Job details for {url}", sys)
 
         
     def _get_jobDetails_url(self, source_url:str):
@@ -165,12 +168,17 @@ class InternshalaScraper:
             """
             # Add a random delay to avoid rate limiting
             time.sleep(5)
-            logging.info(f"init links Scraping \n{source_url}")
+            logger.info(f"init links Scraping \n{source_url}")
             
             # Send a GET request to the URL and soup
             response = requests.get(source_url, headers= self.header)
+            
+            # Continue to next link incase of 404
+            if response.status_code == 404:
+                logger.warning(f"404 not found error for {source_url} - skipping this URL")
+                return
             response.raise_for_status()  # Raise an exception for HTTP errors
-            logging.info("got response from the source url")
+            logger.info("got response from the source url")
             
             soup = BeautifulSoup(response.content, 'html.parser')
             
@@ -185,28 +193,33 @@ class InternshalaScraper:
                     
                     # Get the href attribute and append it to the base URL
                     href = job_link['href']
-                    full_url = self.base_url + href
+                    full_url = self.base_url + str(href)
                     url_list.append(full_url)
                     
             if len(url_list) > 0:
-                logging.info("Successfull scraping for links")
+                logger.info("Successfull scraping for links")
                 self.job_links.extend(url_list)
             else:
-                logging.info(f"ERROR : recived Empty response from source \n{source_url}")
+                logger.warning(f"recived Empty response from source \n{source_url}")
 
-        except :
+        except requests.RequestException as e:
+            logger.error(f"Network error when accessing {source_url}: {str(e)}")
+            raise CustomException(f"Network error during scraping: {str(e)}", sys)
+        except Exception as e:
+            logger.error(f"Excepton occured while fetching 'Job urls' from {source_url}\n", e)
             raise CustomException(f"Error occured during scraping Job list for {source_url}")
-                
-    
-
 
 
 if __name__ == "__main__":
     config = ScraperConfig()
     scraper = InternshalaScraper(config=config)
     res = scraper.start_scraping()
-    if res:
-        logging.info("Successfully compleated Job details scraping")
-        scraper._save_progress()
+    if len(res) > 1:
+        logger.info("Successfully compleated Job details scraping")
+        logger.debug("Saving records to CSV")
+        save_to_csv(res)
     else:
-        logging.error("Program Ended: unsuccessfull attempt")
+        logger.warning("Program Ended: unsuccessfull attempt")
+    
+    
+    
