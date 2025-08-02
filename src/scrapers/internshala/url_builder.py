@@ -1,8 +1,11 @@
 
-from src.config import ScraperConfig
+from src.core.config import ScraperConfig
+from src.core.logger import scraper_logger as logger
+
 
 def url_bilder_init(cfg:ScraperConfig):
     """This function compiles source urls for internships and jobs"""
+    logger.info(" init Compiling source URLs for Job and Internsips")
     url_list = []
     if cfg.internship :
         url_list.append(_build_internship_url(cfg))
@@ -10,10 +13,13 @@ def url_bilder_init(cfg:ScraperConfig):
     if cfg.job:
         url_list.append(_build_job_url(cfg))
     
+    if not len(url_list) > 0:
+        logger.error("No links compiled, Check The config file for issue.") 
     return url_list
 
 def _build_internship_url(cfg:ScraperConfig):
-    """ This function Constructs init URL for Internship"""    
+    """ This function Constructs init URL for Internship""" 
+    logger.info(" Building Internship base url")
     if not cfg.remote:
         return
 
@@ -54,11 +60,14 @@ def _build_internship_url(cfg:ScraperConfig):
         segments.append("stipend-" + stipend[index if index < 6 else 5])
     
     url = "".join(segments) + "/"
-    return(url.replace(' ', '-').lower())
+    final_url = url.replace(' ', '-').lower()
+    logger.info(f"Finished compling base URL, {final_url}")
+    return final_url
 
 
 def _build_job_url(cfg:ScraperConfig):
     """ This function Constructs init URL for Jobs"""
+    logger.info("Building Jobs Base URL")
     if not cfg.job:
         return
     
@@ -93,7 +102,7 @@ def _build_job_url(cfg:ScraperConfig):
     
     # Experience
     if exp == 1:
-        segments.append("experience-"+int(cfg.experience_years)+"/")
+        segments.append("experience-" + str(int(cfg.experience_years)) + "/")
     elif exp == 2:
         segments.append("experience-5plus/")
         
@@ -104,4 +113,6 @@ def _build_job_url(cfg:ScraperConfig):
         segments.append("salary-" + salary[index if index < 6 else 5])
     
     url = "".join(segments) + "/"
-    return(url.replace(' ', '-').lower())
+    final_url = url.replace(' ', '-').lower()
+    logger.info(f"Finished compling base URL, {final_url}")
+    return final_url

@@ -2,14 +2,14 @@ import sys
 import requests
 from bs4 import BeautifulSoup
 import time
-from src.config import ScraperConfig
-from src.exception import CustomException
-from src.logger import scraper_logger as logger
+from src.core.config import ScraperConfig
+from src.core.exception import CustomException
+from src.core.logger import scraper_logger as logger
 from src.scrapers.internshala.url_builder import url_bilder_init
-from src.scrapers.models import JobDetails
-from src.utils import save_to_csv
-from src.utils import write_url_to_file
-from src.utils import extract_posting_date
+from src.core.models import JobDetails
+from src.core.utils import save_to_csv
+from src.core.utils import write_url_to_file
+from src.core.utils import extract_posting_date
 
 
 class InternshalaScraper:

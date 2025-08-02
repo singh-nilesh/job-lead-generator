@@ -1,12 +1,7 @@
-from src.utils import load_json
-from dataclasses import dataclass
-import os
-from typing import Dict, List, Any
-
-# Get the directory where config.py is located
-current_dir = os.path.dirname(os.path.abspath(__file__))
-
-config_path = os.path.join(current_dir, "config", "scraper_config.json")
+from src.core.utils import load_json
+from dataclasses import dataclass, field
+from typing import Dict, List, Any, Optional
+from src.constants import Constants
 
 @dataclass
 class ScraperConfig:
@@ -14,18 +9,20 @@ class ScraperConfig:
     job: bool = True
     internship: bool = False
     remote: bool = False
-    locations: List[str] = None
-    roles: List[str] = None
+    locations: Optional[List[str]] = None
+    roles: Optional[List[str]] = None
     part_time: bool = False
     min_stipend: int = 0
     min_salary: float = 0
     timeout: int = 10
-    internshala_base_urls: str = None
-    headers: Dict[str, str] = None
+    internshala_base_urls: str = "https://internshala.com"
+    headers: dict = field(default_factory=lambda:
+        {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+    )
     experience_years: int = 0
     
     def __post_init__(self):
-        config_data = load_json(config_path)
+        config_data = load_json(Constants.config_path)
         
         self.job = config_data["job"]
         self.internship = config_data["internship"]

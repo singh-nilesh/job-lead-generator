@@ -1,5 +1,12 @@
+# General Python dependencies
 requests
 beautifulsoup4
-Selenium
-Playwright
-#-e .
+psycopg2-binary
+python-dotenv
+
+# Airflow core (version 3.0.0) with constraints for Python 3.12
+apache-airflow==3.0.0
+#--constraint https://raw.githubusercontent.com/apache/airflow/constraints-3.0.0/constraints-3.12.txt
+
+# Local development install
+-e .
