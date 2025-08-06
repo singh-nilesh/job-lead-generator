@@ -144,6 +144,8 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+secrets/*.env
+!/secrets/example.env
 
 # Spyder project settings
 .spyderproject
@@ -159,6 +161,11 @@ venv.bak/
 .mypy_cache/
 .dmypy.json
 dmypy.json
+
+# Exclude all data directories in infra and their contents, and user files
+z-i-*
+infra/*/data/
+infra/*/*/data/
 
 # Pyre type checker
 .pyre/

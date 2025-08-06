@@ -1,0 +1,67 @@
+version: '3.8'
+services:
+
+    postgres_db:
+        container_name: postgres_db
+        image: postgres:15
+        environment:
+            POSTGRES_USER: ${PG_USER}
+            POSTGRES_PASSWORD: ${PG_PASSWORD}
+            APP_USER: ${APP_USER}
+            APP_PASSWORD: ${APP_PASSWORD}
+            AF_USER: ${AF_USER}
+            AF_PASSWORD: ${AF_PASSWORD}
+        ports:
+            - "5000:5432"
+        networks:
+            - data-pipline
+        volumes:
+            - ./infra/postgres/data:/var/lib/postgresql/data
+            - ./infra/postgres/init:/docker-entrypoint-initdb.d
+        
+
+    mongo_db:
+        container_name: mongo_db
+        build:
+            context: ./infra/mongo
+            dockerfile: mongo.Dockerfile
+        environment:
+            MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+            MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+            APP_USER: ${APP_USER}
+            APP_PASSWORD: ${APP_PASSWORD}
+        ports:
+            - "27017:27017"
+        networks:
+            - data-pipline
+        volumes:
+            - ./infra/mongo/data:/data/db
+
+
+    airflow:
+        container_name: airflow
+        build:
+            context: .
+            dockerfile: ./infra/airflow/airflow.Dockerfile
+        ports:
+            - "8000:8080"
+        environment:
+            AIRFLOW__CORE__EXECUTOR: LocalExecutor
+            AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AF_USER}:${AF_PASSWORD}@postgres_db:5432/airflow_db
+            APP_USER: ${APP_USER}
+            APP_PASSWORD: ${APP_PASSWORD}
+        depends_on:
+            - postgres_db
+            - mongo_db
+        volumes:
+            - ./infra/airflow/dags:/opt/airflow/dags
+            - ./src:/opt/airflow/src
+        networks:
+            - data-pipline
+        command: >
+            bash -c "airflow db migrate && airflow standalone"
+
+
+networks:
+    data-pipline:
+        driver: bridge

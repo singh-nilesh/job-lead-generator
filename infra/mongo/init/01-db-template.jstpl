@@ -1,0 +1,14 @@
+db = db.getSiblingDB("jobs");
+
+db.createUser({
+  user: "${APP_USER}",
+  pwd: "${APP_PASSWORD}",
+  roles: [
+    {
+      role: "readWrite",
+      db: "jobs"
+    }
+  ]
+});
+
+db.createCollection("job_details");
