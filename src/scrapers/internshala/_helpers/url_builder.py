@@ -3,8 +3,19 @@ from src.core.config import ScraperConfig
 from src.core.logger import scraper_logger as logger
 
 
-def url_bilder_init(cfg:ScraperConfig):
-    """This function compiles source urls for internships and jobs"""
+def _url_bilder_init(cfg:ScraperConfig) -> list[str]:
+    """
+    Compile source URLs for both internships and jobs based on configuration.
+    
+    Args:
+        cfg (ScraperConfig): Configuration object containing search parameters
+        
+    Returns:
+        List[str]: List of generated URLs for searching internships and/or jobs
+        
+    Note:
+        Returns an empty list if neither internship nor job options are enabled in config
+    """
     logger.info(" init Compiling source URLs for Job and Internsips")
     url_list = []
     if cfg.internship :
@@ -17,8 +28,17 @@ def url_bilder_init(cfg:ScraperConfig):
         logger.error("No links compiled, Check The config file for issue.") 
     return url_list
 
+
 def _build_internship_url(cfg:ScraperConfig):
-    """ This function Constructs init URL for Internship""" 
+    """
+    Construct a search URL for internships based on configuration parameters.
+    
+    Args:
+        cfg (ScraperConfig): Configuration object containing search parameters
+        
+    Returns:
+        Optional[str]: A fully formed URL for internship search, or None if internship search is not enabled
+    """
     logger.info(" Building Internship base url")
     if not cfg.remote:
         return
@@ -66,7 +86,18 @@ def _build_internship_url(cfg:ScraperConfig):
 
 
 def _build_job_url(cfg:ScraperConfig):
-    """ This function Constructs init URL for Jobs"""
+    """
+    Construct a search URL for jobs based on configuration parameters.
+    
+    Args:
+        cfg (ScraperConfig): Configuration object containing search parameters
+        
+    Returns:
+        Optional[str]: A fully formed URL for job search, or None if job search is not enabled
+                      
+    Note:
+        The URL structure adapts based on experience level, directing to either regular jobs or fresher jobs endpoints
+    """
     logger.info("Building Jobs Base URL")
     if not cfg.job:
         return

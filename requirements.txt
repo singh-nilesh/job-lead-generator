@@ -3,6 +3,8 @@ requests
 beautifulsoup4
 psycopg2-binary
 python-dotenv
+pymongo
+
 
 # Airflow core (version 3.0.0) with constraints for Python 3.12
 apache-airflow==3.0.0

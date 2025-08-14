@@ -13,7 +13,31 @@ def load_json(path='config.json'):
         return json.load(f)
 
 
-def extract_posting_date(posted_text):
+def get_airflow_context(ctx: dict | None = None) -> list[str] | None:
+    """
+    Return context:(dag_id, task_id, run_id) from Airflow context.
+    Call only from within a running task (or pass ctx=get_current_context()).
+    """
+    try:
+        if ctx is None:
+            try:
+                from airflow.sdk import get_current_context
+                temp_ctx = get_current_context() if callable(get_current_context) else None
+            except Exception:
+                return None
+            
+        if temp_ctx is not None and "ti" in temp_ctx:
+            ti = temp_ctx["ti"]
+            return [ti.run_id, ti.dag_id, ti.task_id]
+        if not isinstance(ctx, dict):
+            return None
+        
+        
+    except Exception:
+        return None
+
+
+def _extract_posting_date(posted_text):
     """
     Extract the actual posting date from various text formats like:
     """
@@ -122,3 +146,7 @@ def load_csv(
     except Exception:
         logger.exception(f"Error loading CSV from {path}")
         return None
+    
+
+# Define which symbols to export
+__all__ = ["load_json", "write_url_to_file", "save_to_csv", "load_csv", "get_airflow_context"]
