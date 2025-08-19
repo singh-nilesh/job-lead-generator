@@ -8,9 +8,12 @@ class Constants:
     # src dir
     src_dir = os.path.dirname(os.path.abspath(__file__))
     
+    # root
+    project_root = os.path.dirname(src_dir)
+    
     # Artifacts dir
-    artifacts_dir = os.path.join(src_dir, "artifacts")
-    os.makedirs(artifacts_dir, exist_ok=True)
+    artifacts_dir = os.path.join(project_root, "artifacts")
+    os.makedirs(artifacts_dir, exist_ok=True, )
     
     # Config.json
     config_path = os.path.join(src_dir, "config", "scraper_config.json")

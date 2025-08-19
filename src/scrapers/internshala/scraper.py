@@ -19,19 +19,12 @@ class InternshalaScraper:
         self.cfg = config
         self.base_url: str = config.internshala_base_urls
         self.header: dict = config.headers
-        self.job_links: list[str] = []
         self.results: list[JobDetails] = []
     
                 
-    def scrape(self, limit:int = -1) -> list[JobDetails]:
+    def scrape(self, job_links:list[str] , limit:int = -1) -> list[JobDetails]:
         """
         Execute the scraping process to collect job listings.
-        
-        This method orchestrates the full scraping workflow:
-        1. Build search URLs based on configuration
-        2. Extract job listing URLs from search results
-        3. Scrape detailed information from each job listing
-        
         Args:
         limit (int, optional): Maximum number of job listings to scrape. 
             If negative or not provided, all available listings will be scraped. Defaults to -1.
@@ -44,22 +37,8 @@ class InternshalaScraper:
             termination of scraping by the user
         """
         try:
-            # compiling URL as per Config
-            source_urls = _url_bilder_init(self.cfg)
-            logger.info("Finished compiling source URL as per Config")
-            
-            # get job details url
-            for url in source_urls:
-                urls = _get_jobDetails_url(
-                    header = self.header,
-                    source_url = url,
-                    base_url = self.base_url
-                )
-                self.job_links.extend(urls)
-            logger.info(f"Successfuly collected {len(self.job_links)} job urls from the source")
-                
             # scrape Job Details
-            for url in self.job_links[:limit if limit > 0 else None]:
+            for url in job_links[:limit if limit > 0 else None]:
                 job = _scrape_job_details(
                     header= self.header,
                     url= url,
@@ -72,12 +51,41 @@ class InternshalaScraper:
             logger.critical("User terminated process with KeyboardInterrupt")
         finally:
             return self.results
+    
+    
+    def get_urls(self):
+        """
+        This method
+        1. Build search URLs based on configuration
+        2. Extract job listing URLs from search results
+        """
+        try:
+            # compiling URL as per Config
+            source_urls = _url_bilder_init(self.cfg)
+            logger.info("Finished compiling source URL as per Config")
+            
+            links = []
+            # get job details url
+            for url in source_urls:
+                urls = _get_jobDetails_url(
+                    header = self.header,
+                    source_url = url,
+                    base_url = self.base_url
+                )
+                links.extend(urls)
+            logger.info(f"Successfuly collected {len(links)} job urls from the source")
+            
+        except KeyboardInterrupt:
+            logger.critical("User terminated process with KeyboardInterrupt")
+        finally:
+            return links
         
 
 if __name__ == "__main__":
-    config = ScraperConfig()
+    config = ScraperConfig().load_default_cfg()
     scraper = InternshalaScraper(config=config)
-    res = scraper.scrape()
+    links = scraper.get_urls()
+    res = scraper.scrape(links)
     if len(res) > 1:
         logger.info("Successfully compleated Job details scraping")
         logger.debug("Saving records to CSV")

@@ -10,26 +10,44 @@ from src.core.logger import airflow_logger as logger
 )
 
 def intershala_scraper_pipline():
+    from src.scrapers import InternshalaScraper
+    from src.core import ScraperConfig
     
-    @task(task_id="scrape_&_save")
-    def scrape():
+    user_config = ScraperConfig().load_default_cfg()
+    scraper = InternshalaScraper(config=user_config)
+    
+    @task(task_id="filter_urls")
+    def filter_url():
+        from src.core.utils import get_airflow_context
+        context = get_airflow_context()
+        """
+        This task filtters out visited tasks from list of Job Urls.
+        """
+        # Compile and scrape source Urls
+        logger.info("Compiling Job links to scrape", ctx=context)
+        urls = scraper.get_urls()
+        logger.info(f" Successfully filter {len(urls)} to scrape")
+        return urls
+    
+    
+    @task(task_id="scrape_persist")
+    def scrape(urls):
         """
         This task, scrapes Internshala job details and saves them to local .csv, to be used by other tasks.
         """
         # Imports
-        from src.scrapers import InternshalaScraper
-        from src.core import ScraperConfig
         from src.core.utils import save_to_csv, get_airflow_context
         
         # inti task context
         context = get_airflow_context()
         
-        config = ScraperConfig()
-        scraper = InternshalaScraper(config= config)
+        if urls is None:
+            logger.warning("now links recived at task scrape_persist", ctx=context)
+        else:
+            logger.info("Proceding with scraping the Job Urls", ctx=context)
         
         # scrape the job details
-        logger.info("inti Scraping Internshala job Urls", ctx=context)
-        result = scraper.scrape(limit=5)
+        result = scraper.scrape(urls, limit=5)
         logger.info(f"Successfuly scraped {len(result)} jobs.", ctx=context)
         
         # Temporary storage in .csv
@@ -43,7 +61,8 @@ def intershala_scraper_pipline():
             return
     
     # Task chaining
-    scraped = scrape()
+    filtered_url = filter_url()
+    scraped = scrape(filtered_url)
 
 
 dag_instance = intershala_scraper_pipline()

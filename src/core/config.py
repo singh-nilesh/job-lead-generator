@@ -1,7 +1,8 @@
-from src.core.utils import load_json
 from dataclasses import dataclass, field
-from typing import Dict, List, Any, Optional
+from typing import Optional, List, Any
+from src.core.utils import load_json
 from src.constants import Constants
+
 
 @dataclass
 class ScraperConfig:
@@ -20,19 +21,27 @@ class ScraperConfig:
         {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
     )
     experience_years: int = 0
-    
-    def __post_init__(self):
+
+    @classmethod
+    def from_dict(cls, config_data: dict[str, Any]) -> "ScraperConfig":
+        """Initialize from a dict (parsed JSON)"""
+        return cls(
+            job=config_data.get("job", True),
+            internship=config_data.get("internship", False),
+            remote=config_data.get("work_from_home", False),
+            locations=config_data.get("location"),
+            roles=config_data.get("role"),
+            part_time=config_data.get("part_time", False),
+            min_stipend=config_data.get("min_stipend", 0),
+            min_salary=config_data.get("salary(lpa)", 0.0),
+            timeout=config_data.get("timeout", 10),
+            internshala_base_urls=config_data.get("baseUrl", {}).get("internshala", "https://internshala.com"),
+            headers=config_data.get("headers", {"User-Agent": "Mozilla/5.0"}),
+            experience_years=config_data.get("experience_years", 0),
+        )
+
+    @classmethod
+    def load_default_cfg(cls) -> "ScraperConfig":
+        """Initialize directly from JSON file"""
         config_data = load_json(Constants.config_path)
-        
-        self.job = config_data["job"]
-        self.internship = config_data["internship"]
-        self.remote = config_data["work_from_home"]
-        self.locations = config_data["location"]
-        self.roles = config_data["role"]
-        self.part_time = config_data["part_time"]
-        self.min_stipend = config_data["min_stipend"]
-        self.min_salary = config_data["salary(lpa)"]
-        self.timeout = config_data["timeout"]
-        self.internshala_base_urls = config_data["baseUrl"]["internshala"]
-        self.headers = config_data["headers"]
-        self.experience_years = config_data["experience_years"]
+        return cls.from_dict(config_data)
