@@ -1,58 +1,39 @@
 # 🧪 DataOps Test Lab – Job Lead Generation System
 
-**"AI-Powered Job Lead Generation & Contact Discovery Platform"**
+This repository contains a DataOps test lab for a job lead generation system. It is designed to help you understand how to set up and manage data pipelines, automate workflows, and ensure data quality in a real-world scenario. It also covers various DevOps practices such as CI/CD, monitoring, cloud, and logging.
 
-This system scrapes job portals like LinkedIn, Naukri, Glassdoor, and Internshala, discovers HR contacts, enriches data, monitors performance, and optimizes costs — all deployable on Docker locally and AWS in production.
+## Learning Objectives
+1. **Build a python scraper for Intershala**
+    - <a href="./learning_logs/01_python_scraper.md">Learning log</a> | <a href="https://github.com/singh-nilesh/job-lead-generator/tree/39eb5abd3f30a0be8db09784b2bf155bdd0357e2">Source code</a>
 
-`🔴🔴 For educational purpose only 🔴🔴`      
----
+2. **Integrate the scraper with Apache Airflow for scheduling and monitoring**
+    - <a href="./learning_logs/02_scraper-airflow.md">Learning log</a> | <a href="https://github.com/singh-nilesh/job-lead-generator/tree/8e7aa5f9b7caa623af00337192465447f15bbe65">Source code</a>
 
-## ⚙️ Development Objectives
+3. **Filter Already Scraped URLs AND True Parallelism**
+    - <a href="./learning_logs/03_url-filter.md">Learning log</a> | <a href="">Source code</a>
 
-### ✅ Stage 1: Local Setup with Docker (Simulation Phase)
 
-| Objective | Tools |
-|----------|-------|
-| Simulate AWS infrastructure locally | Docker, Docker Compose |
-| Run scrapers and database | Selenium, BeautifulSoup, PostgreSQL |
-| Track pipeline health | Prometheus, Grafana |
-| Schedule jobs | Cron (or Python Scheduler) |
-| Store reports | Local filesystem (acts like S3) |
 
-#### Steps:
-1. Clone the repository.
-2. Spin up services using `docker-compose`.
-3. Run scraper containers to fetch job data.
-4. Store data into docker PostgreSQL or mongoDB.
-5. Visualize metrics in Grafana.
-6. Output daily JSON and email templates.
 
----
+## Setup Instructions
+Pre-requisites:
+- Docker and Docker Compose installed on your machine.
+- Python 3.8 or higher installed.
 
-### 🚀 Stage 2: Cloud Deployment (Production Phase on AWS)
+### Step 1: Clone the Repository
+```bash
+# Clone the repository to your local machine
+git clone https://github.com/singh-nilesh/job-lead-generator.git
+cd job-lead-generator
+git checkout <commit-hash>
+```
+- Replace `<commit-hash>` with the specific commit you want to work with. Visit the Source code links above, the commit-hash will be visible in the URL or the Branch name.
 
-| Objective | Tools |
-|-----------|-------|
-| Deploy scalable infra | AWS EC2, RDS, S3, IAM |
-| Automate builds and deployments | GitLab CI/CD |
-| Monitor production pipeline | Prometheus, Grafana, or CloudWatch |
-| Optimize resource cost | Cost Explorer, Prometheus Alerts |
+### Step 2: Set Up Docker Compose
+```bash
+# Run the pre-docker-compose script
+./z-pre-docker-compose.sh
 
-#### Steps:
-1. Provision infrastructure using AWS CLI or Terraform.
-2. Push Docker images to EC2.
-3. Migrate PostgreSQL schema to RDS.
-4. Store reports and resumes in S3.
-5. Set up Prometheus + Grafana (or use CloudWatch).
-6. Use GitLab `.gitlab-ci.yml` for automated deployments and cron schedules.
-
----
-
-## 📊 Key Components
-
-- **Scrapers**: LinkedIn, Naukri, Internshala, Glassdoor
-- **Enrichment pipeline**: HR contact discovery, email pattern matching
-- **Database**: PostgreSQL with jobs and contacts schema
-- **Monitoring**: Custom metrics (scraping success, job counts, etc.)
-- **Frontend**: Angular UI
-- **Deployment**: Docker → AWS + GitLab
+# Start the Docker containers using Docker Compose
+docker-compose up --build
+```
