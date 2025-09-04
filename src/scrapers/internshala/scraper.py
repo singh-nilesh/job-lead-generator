@@ -4,9 +4,8 @@ from src.core.exception import CustomException
 from src.core.logger import scraper_logger as logger
 from src.core.models import JobDetails
 from src.core.utils import save_to_csv
-from ._helpers.url_builder import _url_bilder_init
-from ._helpers.bf4_client import _get_jobDetails_url, _scrape_job_details
-
+from ._helpers.bf4_client import _scrape_job_details, _get_jobDetails_url
+from ._helpers.url_builder import compile_url
 
 class InternshalaScraper:
     def __init__ (self, config:ScraperConfig, max_page = 1):
@@ -17,7 +16,7 @@ class InternshalaScraper:
             max_page (int, optional): Maximum number of search result pages to scrape. Defaults to 1.
         """
         self.cfg = config
-        self.base_url: str = config.internshala_base_urls
+        self.base_url: str = config.base_urls["internshala"]
         self.header: dict = config.headers
         self.results: list[JobDetails] = []
     
@@ -51,9 +50,8 @@ class InternshalaScraper:
             logger.critical("User terminated process with KeyboardInterrupt")
         finally:
             return self.results
-    
-    
-    def get_urls(self):
+        
+    def build_urls(self) -> list[str]:
         """
         This method
         1. Build search URLs based on configuration
@@ -61,9 +59,9 @@ class InternshalaScraper:
         """
         try:
             # compiling URL as per Config
-            source_urls = _url_bilder_init(self.cfg)
+            source_urls = compile_url(cfg=self.cfg)
             logger.info("Finished compiling source URL as per Config")
-            
+
             links = []
             # get job details url
             for url in source_urls:
@@ -74,17 +72,17 @@ class InternshalaScraper:
                 )
                 links.extend(urls)
             logger.info(f"Successfuly collected {len(links)} job urls from the source")
-            
+
         except KeyboardInterrupt:
             logger.critical("User terminated process with KeyboardInterrupt")
         finally:
             return links
-        
+
 
 if __name__ == "__main__":
     config = ScraperConfig().load_default_cfg()
     scraper = InternshalaScraper(config=config)
-    links = scraper.get_urls()
+    links = scraper.build_urls()
     res = scraper.scrape(links)
     if len(res) > 1:
         logger.info("Successfully compleated Job details scraping")

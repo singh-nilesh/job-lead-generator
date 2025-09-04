@@ -1,6 +1,20 @@
+from dataclasses import asdict
 from airflow.decorators import dag, task
+from airflow.exceptions import AirflowSkipException, AirflowFailException
 from datetime import datetime
 from src.core.logger import airflow_logger as logger
+import os
+import dotenv
+
+# load .env variables
+dotenv.load_dotenv()
+mongo_config = {
+    "user_name": os.environ["APP_USER"],
+    "password": os.environ["APP_PASSWORD"],
+    "db_name": "jobs",
+    "collection_name": 'job_details',  # mongo/init
+    "service": "mongo_db"  # from docker-compose file
+}
                 
 @dag(
     dag_id="internshala_scraper_pipeline",
@@ -10,59 +24,75 @@ from src.core.logger import airflow_logger as logger
 )
 
 def intershala_scraper_pipline():
-    from src.scrapers import InternshalaScraper
     from src.core import ScraperConfig
-    
     user_config = ScraperConfig().load_default_cfg()
-    scraper = InternshalaScraper(config=user_config)
-    
-    @task(task_id="filter_urls")
-    def filter_url():
-        from src.core.utils import get_airflow_context
-        context = get_airflow_context()
-        """
-        This task filtters out visited tasks from list of Job Urls.
-        """
-        # Compile and scrape source Urls
-        logger.info("Compiling Job links to scrape", ctx=context)
-        urls = scraper.get_urls()
-        logger.info(f" Successfully filter {len(urls)} to scrape")
-        return urls
-    
     
     @task(task_id="scrape_persist")
-    def scrape(urls):
+    def scrape_persist():
         """
-        This task, scrapes Internshala job details and saves them to local .csv, to be used by other tasks.
+        This task, scrapes Internshala job details and saves them to MongoDb.
         """
         # Imports
-        from src.core.utils import save_to_csv, get_airflow_context
+        from src.core.utils import get_airflow_context
+        from src.scrapers import InternshalaScraper
+        from src.db_services import MongoClient
         
-        # inti task context
+        # inti task context & scraper
+        context = get_airflow_context()
+        scraper = InternshalaScraper(user_config)
+        logger.info("Finished init for IntershalaScraper", ctx=context)
+        
+        # Compile Urls
+        urls = scraper.build_urls()
+        if not urls:
+            logger.warning("No Urls to scrape, Aborting the pipline", ctx=context)
+            raise AirflowSkipException("No URLS to scrape")
+        logger.info(f"SUccessfully compiled {len(urls)} Job urls", ctx=context)
+        
+        # Scrape
+        jobs = scraper.scrape(urls, limit=5)
+        jobs = [asdict(job) for job in jobs] # store as dict for mongo
+        logger.info(f"Successfully scraped {len(jobs)} Jobs", ctx=context)
+        
+        # Mongo persist
+        with MongoClient(**mongo_config) as db:
+            ids = db.insert(jobs)
+            if ids:
+                logger.info(f"Finnised inserting {len(ids)} records MongoDB", ctx=context)
+            else:
+                logger.error(f"Error occured wile inserting record, refer to db_log", ctx=context)
+    
+    
+    @task(task_id="retrive")
+    def retrive():
+        """
+        This Task checks if data was inserted correctly
+        """
+        from src.db_services import MongoClient
+        from src.core.utils import get_airflow_context
+        
         context = get_airflow_context()
         
-        if urls is None:
-            logger.warning("now links recived at task scrape_persist", ctx=context)
-        else:
-            logger.info("Proceding with scraping the Job Urls", ctx=context)
+        logger.info("Retriving records from MongoDB", ctx=context)
+        with MongoClient(**mongo_config) as db:
+            rows = db.find()
+            if rows:
+                logger.info(f"Successfully retrived {len(rows)} records from MongoDB, and 1st id is {rows[0]["_id"]}", ctx=context)
+            else:
+                logger.error("Error retriving the records.", ctx=context)
+            
+            
+            
         
-        # scrape the job details
-        result = scraper.scrape(urls, limit=5)
-        logger.info(f"Successfuly scraped {len(result)} jobs.", ctx=context)
         
-        # Temporary storage in .csv
-        logger.info("Saving scraped data to jobs.csv foe temporary storage.", ctx=context)
-        csv_file_path = save_to_csv(result)
-        if csv_file_path:
-            logger.info("Successfuly saved to .csv", ctx=context)
-            return csv_file_path
-        else:
-            logger.info("failed at saving to jobs.csv", ctx=context)
-            return
+        
     
     # Task chaining
-    filtered_url = filter_url()
-    scraped = scrape(filtered_url)
+    scraped = scrape_persist()
+    select = retrive()
+    
+    # Enforcing order manually, as there is no dependdency as of now
+    scraped.set_downstream(select)
 
 
 dag_instance = intershala_scraper_pipline()

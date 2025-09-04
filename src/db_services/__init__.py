@@ -10,3 +10,9 @@ Modules:
 Usage:
     from src.db_services.mongo_service import connect, select, insert
 """
+
+from .mongo_service import MongoDBService as MongoClient
+
+__all__ = [
+    "MongoClient"
+]

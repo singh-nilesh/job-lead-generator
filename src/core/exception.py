@@ -24,7 +24,18 @@ def error_message_detail(error, error_detail=None):
 
 # Custom Exception to be used for Logger
 class CustomException(Exception):
+    """
+    Application exception that adds file/line context.
+
+    Args:
+        error (Exception | str): Original exception or message.
+        error_details (module, optional): sys module to extract traceback.
+
+    Attributes:
+        error_message (str): Formatted contextual message.
+    """
     def __init__(self, error, error_details=None):
+        
         super().__init__(str(error))
         self.error_message = error_message_detail(error, error_details)
 

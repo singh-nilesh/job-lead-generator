@@ -2,19 +2,14 @@
 from src.core.config import ScraperConfig
 from src.core.logger import scraper_logger as logger
 
-
-def _url_bilder_init(cfg:ScraperConfig) -> list[str]:
+def compile_url(cfg:ScraperConfig) -> list[str]:
     """
     Compile source URLs for both internships and jobs based on configuration.
-    
     Args:
         cfg (ScraperConfig): Configuration object containing search parameters
         
     Returns:
         List[str]: List of generated URLs for searching internships and/or jobs
-        
-    Note:
-        Returns an empty list if neither internship nor job options are enabled in config
     """
     logger.info(" init Compiling source URLs for Job and Internsips")
     url_list = []
@@ -27,7 +22,6 @@ def _url_bilder_init(cfg:ScraperConfig) -> list[str]:
     if not len(url_list) > 0:
         logger.error("No links compiled, Check The config file for issue.") 
     return url_list
-
 
 def _build_internship_url(cfg:ScraperConfig):
     """
@@ -45,7 +39,7 @@ def _build_internship_url(cfg:ScraperConfig):
 
     segments = []
     # base URL
-    segments.append(str(cfg.internshala_base_urls+"/internships/"))
+    segments.append(str(cfg.base_urls["internshala"]+"/internships/"))
     
     # construct mid segment
     roles = ",".join(cfg.roles) if cfg.roles else None
@@ -109,7 +103,7 @@ def _build_job_url(cfg:ScraperConfig):
     else: exp = 1
     
     # base URL
-    segments.append(cfg.internshala_base_urls)
+    segments.append(cfg.base_urls["internshala"])
     segments.append(str("/jobs/" if exp != 0 else "/fresher-jobs/"))
     
     # construct mid segment

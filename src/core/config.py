@@ -16,10 +16,12 @@ class ScraperConfig:
     min_stipend: int = 0
     min_salary: float = 0
     timeout: int = 10
-    internshala_base_urls: str = "https://internshala.com"
-    headers: dict = field(default_factory=lambda:
-        {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-    )
+    base_urls: dict[str, str] = field(default_factory=lambda: {
+        "internshala": "https://internshala.com",
+    })
+    headers: dict[str, str] = field(default_factory=lambda: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+    })
     experience_years: int = 0
 
     @classmethod
@@ -35,8 +37,8 @@ class ScraperConfig:
             min_stipend=config_data.get("min_stipend", 0),
             min_salary=config_data.get("salary(lpa)", 0.0),
             timeout=config_data.get("timeout", 10),
-            internshala_base_urls=config_data.get("baseUrl", {}).get("internshala", "https://internshala.com"),
-            headers=config_data.get("headers", {"User-Agent": "Mozilla/5.0"}),
+            base_urls=config_data.get("baseUrl", {"internshala": "https://internshala.com"}),
+            headers=config_data.get("headers", {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}),
             experience_years=config_data.get("experience_years", 0),
         )
 
