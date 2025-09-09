@@ -3,6 +3,7 @@ from airflow.decorators import dag, task
 from airflow.exceptions import AirflowSkipException, AirflowFailException
 from datetime import datetime
 from src.core.logger import airflow_logger as logger
+import hashlib
 import os
 import dotenv
 
@@ -15,6 +16,12 @@ mongo_config = {
     "collection_name": 'job_details',  # mongo/init
     "service": "mongo_db"  # from docker-compose file
 }
+
+#Function for using hash as id
+def make_id(url: str) -> str:
+    """Generate a stable Mongo _id from a URL."""
+    return hashlib.md5(url.encode()).hexdigest()
+
                 
 @dag(
     dag_id="internshala_scraper_pipeline",
@@ -27,8 +34,69 @@ def intershala_scraper_pipline():
     from src.core import ScraperConfig
     user_config = ScraperConfig().load_default_cfg()
     
+    @task(task_id="compile")
+    def compile_urls():
+        """
+        This task compiles and scraps Job Urls from the source.
+        """
+        from src.scrapers import InternshalaScraper
+        from src.core.utils import get_airflow_context
+        context = get_airflow_context()
+        scraper = InternshalaScraper(user_config)
+        
+        # Compile and scrape source Urls
+        logger.info("Compiling Job links to scrape", ctx=context)
+        urls = scraper.build_urls()
+        if len(urls) > 0:
+            logger.info("Successfully collected Target URLs", ctx=context)
+            return urls
+        else:
+            logger.warning("No URLs to scrape, aborting.", ctx=context)
+            return None
+        
+    
+    @task(task_id="filter")
+    def filter_url(urls):
+        """
+        Filter out URLs already present in MongoDB.
+        Returns only new (not yet stored) URLs.
+        """
+        if not urls:
+            raise AirflowSkipException("No URLs provided to filter task.")
+        
+        from src.db_services import MongoClient
+        from src.core.utils import get_airflow_context
+
+        context = get_airflow_context()
+        if context:
+            task_id = context[-1]
+
+        # Map each URL to its hash (_id in Mongo)
+        url_to_id = {url: make_id(url) for url in urls}
+        hashed_ids = list(url_to_id.values())
+
+        # Query existing docs whose _id is in our hash list
+        with MongoClient(**mongo_config, task_id=task_id) as db:
+            existing_docs = db.find({"_id": {"$in": hashed_ids}})
+
+        existing_ids = {doc["_id"] for doc in existing_docs}
+
+        # Keep only URLs whose hash is not in existing_ids
+        new_urls = [url for url, hid in url_to_id.items() if hid not in existing_ids]
+
+        logger.info(
+            f"Filter task: total={len(urls)}, existing={len(existing_ids)}, new={len(new_urls)}",
+            ctx=context
+        )
+
+        if not new_urls:
+            raise AirflowSkipException("No new URLs to scrape.")
+
+        return new_urls
+    
+    
     @task(task_id="scrape_persist")
-    def scrape_persist():
+    def scrape_persist(urls):
         """
         This task, scrapes Internshala job details and saves them to MongoDb.
         """
@@ -40,20 +108,16 @@ def intershala_scraper_pipline():
         # inti task context & scraper
         context = get_airflow_context()
         scraper = InternshalaScraper(user_config)
-        logger.info("Finished init for IntershalaScraper", ctx=context)
-        
-        # Compile Urls
-        urls = scraper.build_urls()
-        if not urls:
-            logger.warning("No Urls to scrape, Aborting the pipline", ctx=context)
-            raise AirflowSkipException("No URLS to scrape")
-        logger.info(f"SUccessfully compiled {len(urls)} Job urls", ctx=context)
-        
+                
         # Scrape
-        jobs = scraper.scrape(urls, limit=5)
+        jobs = scraper.scrape(urls, limit=5)    
         jobs = [asdict(job) for job in jobs] # store as dict for mongo
         logger.info(f"Successfully scraped {len(jobs)} Jobs", ctx=context)
         
+        # make hash ids
+        for job in jobs:
+            job["_id"] = make_id(job["url"])
+            
         # Mongo persist
         with MongoClient(**mongo_config) as db:
             ids = db.insert(jobs)
@@ -77,7 +141,7 @@ def intershala_scraper_pipline():
         with MongoClient(**mongo_config) as db:
             rows = db.find()
             if rows:
-                logger.info(f"Successfully retrived {len(rows)} records from MongoDB, and 1st id is {rows[0]["_id"]}", ctx=context)
+                logger.info(f"Successfully retrived {len(rows)} records from MongoDB, and 1st id is {rows[0]['_id']} and hash for url is {make_id(rows[0]['url'])}", ctx=context)
             else:
                 logger.error("Error retriving the records.", ctx=context)
             
@@ -88,11 +152,15 @@ def intershala_scraper_pipline():
         
     
     # Task chaining
-    scraped = scrape_persist()
-    select = retrive()
+    raw_url = compile_urls()
+    filter = filter_url(raw_url)
+    scraped = scrape_persist(filter)
+    retrive_task = retrive()
     
-    # Enforcing order manually, as there is no dependdency as of now
-    scraped.set_downstream(select)
+    raw_url.set_downstream(filter)
+    filter.set_downstream(scraped)
+    scraped.set_downstream(retrive_task)
+    
 
 
 dag_instance = intershala_scraper_pipline()

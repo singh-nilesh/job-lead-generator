@@ -25,3 +25,6 @@
 - How to use Airflow's monitoring features to track the status of your scraping tasks.
 - Standard practices for dataclasses and type hints in Python for better code clarity and maintainability.
 - Accommodating project structure for add other scrapers in the future, and how to extend the Airflow DAG to include them.
+
+## references:
+- [Airflow - Tasks](https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/tasks.html)

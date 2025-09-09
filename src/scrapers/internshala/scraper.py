@@ -40,7 +40,7 @@ class InternshalaScraper:
             for url in job_links[:limit if limit > 0 else None]:
                 job = _scrape_job_details(
                     header= self.header,
-                    url= url,
+                    url= url
                 )
                 if job is not None:
                     self.results.append(job)

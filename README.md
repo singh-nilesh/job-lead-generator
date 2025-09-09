@@ -7,7 +7,10 @@ This repository contains a DataOps test lab for a job lead generation system. It
     - <a href="./learning_logs/01_python_scraper.md">Learning log</a> | <a href="https://github.com/singh-nilesh/job-lead-generator/tree/39eb5abd3f30a0be8db09784b2bf155bdd0357e2">Source code</a>
 
 2. **Integrate the scraper with Apache Airflow for scheduling and monitoring**
-    - <a href="./learning_logs/02_scraper-airflow.md">Learning log</a> | <a href="">Source code</a>
+    - <a href="./learning_logs/02_scraper-airflow.md">Learning log</a> | <a href="https://github.com/singh-nilesh/job-lead-generator/tree/058f8069794817f3f9f951a006d7bcab7d5c18f5">Source code</a>
+
+3. **Filter Already Scraped URLs AND worker nodes forParallelism**
+    - <a href="./learning_logs/03_url-filter.md">Learning log</a> | <a href="">Source code</a>
 
 
 
