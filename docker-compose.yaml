@@ -12,7 +12,7 @@ services:
         ports:
             - "5000:5432"
         networks:
-            - data-pipline
+            - data-pipeline
         volumes:
             - ./infra/postgres/data:/var/lib/postgresql/data
             - ./infra/postgres/init:/docker-entrypoint-initdb.d
@@ -31,36 +31,19 @@ services:
         ports:
             - "27017:27017"
         networks:
-            - data-pipline
+            - data-pipeline
         volumes:
             - ./infra/mongo/data:/data/db
 
-
-    airflow:
-        container_name: airflow
-        build:
-            context: .
-            dockerfile: ./infra/airflow/airflow.Dockerfile
+    redis:
+        container_name: redis
+        image: redis:latest
         ports:
-            - "8080:8080"
-        environment:
-            AIRFLOW__CORE__EXECUTOR: LocalExecutor
-            AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AF_USER}:${AF_PASSWORD}@postgres_db:5432/airflow_db
-            APP_USER: ${APP_USER}
-            APP_PASSWORD: ${APP_PASSWORD}
-        depends_on:
-            - postgres_db
-            - mongo_db
-        volumes:
-            - ./infra/airflow/dags:/opt/airflow/dags
-            - ./src:/opt/airflow/src
-            - ./artifacts:/opt/airflow/artifacts
+            - "6379:6379"
         networks:
-            - data-pipline
-        command: >
-            bash -c "airflow db migrate && airflow standalone"
+            - data-pipeline
 
 
 networks:
-    data-pipline:
+    data-pipeline:
         driver: bridge
